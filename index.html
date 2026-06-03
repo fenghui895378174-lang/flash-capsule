@@ -12,13 +12,10 @@
 /* ========== 全局 ========== */
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 :root{--primary:#07C160;--danger:#FA5151;--warning:#FF9500;--text-primary:#191919;--text-secondary:#576B95;--text-tertiary:#999;--bg:#F7F7F7;--white:#fff;--border:#EDEDED;--card-shadow:0 1px 4px rgba(0,0,0,.06);--radius:12px}
-html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;background:#E8E8E8;color:var(--text-primary);overflow:hidden}
-.phone-frame{width:390px;height:844px;margin:20px auto;background:var(--bg);border-radius:44px;box-shadow:0 20px 60px rgba(0,0,0,.25),inset 0 0 0 2px #333;position:relative;overflow:hidden;display:flex;flex-direction:column}
-.phone-notch{position:absolute;top:0;left:50%;transform:translateX(-50%);width:160px;height:34px;background:#000;border-radius:0 0 22px 22px;z-index:999}
-.phone-statusbar{height:44px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 24px 6px;font-size:13px;font-weight:600;position:relative;z-index:100}
-
-.app-container{flex:1;position:relative;overflow:hidden}
-.page{position:absolute;top:44px;left:0;right:0;bottom:56px;overflow-y:auto;overflow-x:hidden;background:var(--bg);opacity:0;pointer-events:none;transition:opacity .25s ease,transform .25s ease;transform:translateX(20px);-webkit-overflow-scrolling:touch}
+html,body{height:100%;width:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--text-primary);overflow:hidden;-webkit-user-select:none;user-select:none}
+.app-container{width:100%;height:100%;position:relative;overflow:hidden;display:flex;flex-direction:column}
+.app-container{padding-top:env(safe-area-inset-top,0);padding-bottom:env(safe-area-inset-bottom,0)}
+.page{position:absolute;top:0;left:0;right:0;bottom:56px;overflow-y:auto;overflow-x:hidden;background:var(--bg);opacity:0;pointer-events:none;transition:opacity .25s ease,transform .25s ease;transform:translateX(20px);-webkit-overflow-scrolling:touch}
 .page.active{opacity:1;pointer-events:auto;transform:translateX(0)}
 .page.slide-in-right{transform:translateX(100%);opacity:1;pointer-events:auto;transition:transform .3s cubic-bezier(.25,.46,.45,.94),opacity .25s ease}
 .page.slide-in-right.active{transform:translateX(0)}
@@ -246,20 +243,10 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","P
 .notify-banner .notify-btn{font-size:12px;padding:4px 12px;border-radius:14px;background:var(--warning);color:#fff;cursor:pointer;border:none}
 .notify-banner .notify-close{color:var(--text-tertiary);cursor:pointer;margin-left:8px}
 
-/* 响应式 */
-@media(max-width:420px){.phone-frame{width:100%;height:100vh;margin:0;border-radius:0;border:none}.phone-notch{display:none}}
+
 </style>
 </head>
 <body>
-
-<div class="phone-frame">
-<div class="phone-notch"></div>
-<div class="phone-statusbar"><span id="liveClock">9:41</span>
-<span style="display:flex;align-items:center;gap:5px">
-<svg width="15" height="11" viewBox="0 0 16 12" fill="none"><rect x="0.5" y="9" width="2.5" height="2.5" rx="0.5" fill="currentColor"/><rect x="4" y="6.5" width="2.5" height="5" rx="0.5" fill="currentColor"/><rect x="7.5" y="4" width="2.5" height="7.5" rx="0.5" fill="currentColor"/><rect x="11" y="1.5" width="2.5" height="10" rx="0.5" fill="currentColor"/></svg>
-<svg width="16" height="11" viewBox="0 0 18 12" fill="none" style="margin-top:1px"><path d="M1 4.5l3.2 3.5L8 4.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M5.5 8V1.2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
-<svg width="24" height="12" viewBox="0 0 26 14" fill="none"><rect x="0.5" y="0.5" width="23" height="13" rx="2.5" stroke="currentColor" stroke-width="1"/><rect x="2" y="2.8" width="19" height="8.4" rx="1" fill="currentColor" opacity=".85"/><rect x="24.5" y="4.5" width="2" height="5" rx="1" fill="var(--primary)"/></svg>
-</span></div>
 
 <div class="app-container" id="appContainer">
 
@@ -483,7 +470,6 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","P
   </div>
 </div>
 
-</div>
 
 <!-- Toast -->
 <div class="toast" id="toast"></div>
@@ -610,14 +596,6 @@ const Notifier = {
     try { localStorage.setItem('fc_notified', JSON.stringify([...this._notifiedIds])); } catch(e){}
   }
 };
-
-// ==================== 全局时钟 ====================
-function updateLiveClock(){
-  const now = new Date();
-  const h = String(now.getHours()).padStart(2,'0');
-  const m = String(now.getMinutes()).padStart(2,'0');
-  document.getElementById('liveClock').textContent = `${h}:${m}`;
-}
 
 // ==================== 数据层 ====================
 let records = [
@@ -1204,10 +1182,8 @@ function toast(msg){
   // 初始化通知系统
   await Notifier.init();
   // 显示权限引导
-  Notifier.showBannerIfNeeded();
-  // 启动时钟
-  updateLiveClock();
-  setInterval(updateLiveClock, 30000);
+Notifier.showBannerIfNeeded();
+// 启动时钟
   // 定时检查提醒
   setInterval(()=>{ Notifier.checkReminders(); }, 30000);
   // 首次检查
