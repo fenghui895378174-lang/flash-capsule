@@ -8,6 +8,8 @@
 <meta name="theme-color" content="#F7F7F7">
 <title>闪记胶囊 FlashCapsule</title>
 <link rel="manifest" href="./manifest.json">
+<script src="capacitor.js"></script>
+<script src="local-notifications.js"></script>
 <style>
 /* ========== 全局 ========== */
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -504,43 +506,82 @@ const Storage = {
 // ==================== 通知管理器 ====================
 const Notifier = {
   _permission: 'default',
-  _notifiedIds: new Set(), // 已通知过的记录ID，防止重复通知
+  _notifiedIds: new Set(),
+  _notificationId: 1,
 
-  // 初始化：检查权限状态
-  async init(){
-    if('Notification' in window){
-      this._permission = Notification.permission;
+  // 是否在 Capacitor 原生环境（Android/iOS）
+  get _isNative(){
+    return typeof Capacitor !== 'undefined' && Capacitor.isNative && Capacitor.isNativePlatform();
+  },
+
+  // 获取插件实例
+  get _plugin(){
+    if(this._isNative && Capacitor.Plugins && Capacitor.Plugins.LocalNotifications){
+      return Capacitor.Plugins.LocalNotifications;
     }
+    return null;
+  },
+
+  async init(){
     // 加载已通知记录
     try {
       const raw = localStorage.getItem('fc_notified');
       if(raw) this._notifiedIds = new Set(JSON.parse(raw));
     } catch(e){}
-  },
 
-  // 请求通知权限
-  async requestPermission(){
-    if(!('Notification' in window)){
-      toast('此设备不支持浏览器通知');
-      return 'denied';
-    }
-    try {
-      const result = await Notification.requestPermission();
-      this._permission = result;
-      if(result === 'granted'){
-        toast('通知已开启，您将在设定时间收到提醒');
-        document.getElementById('notifyBanner').innerHTML = '';
-      } else {
-        toast('通知权限被拒绝，提醒功能将无法使用');
+    // 检查权限状态
+    if(this._isNative){
+      try {
+        const result = await this._plugin.checkPermissions();
+        this._permission = result.display === 'granted' ? 'granted' : 'default';
+      } catch(e){
+        console.warn('Capacitor 权限检查失败', e);
+        this._permission = 'default';
       }
-      return result;
-    } catch(e){
-      this._permission = 'denied';
+    } else if('Notification' in window){
+      this._permission = Notification.permission;
+    }
+  },
+
+  async requestPermission(){
+    if(this._isNative){
+      // 使用 Capacitor 原生通知权限
+      try {
+        const result = await this._plugin.requestPermissions();
+        this._permission = result.display === 'granted' ? 'granted' : 'denied';
+        if(this._permission === 'granted'){
+          toast('通知已开启，您将在设定时间收到提醒');
+          document.getElementById('notifyBanner').innerHTML = '';
+        } else {
+          toast('通知权限被拒绝，请在系统设置中开启通知权限');
+        }
+        return this._permission;
+      } catch(e){
+        this._permission = 'denied';
+        toast('通知权限请求失败');
+        return 'denied';
+      }
+    } else if('Notification' in window){
+      try {
+        const result = await Notification.requestPermission();
+        this._permission = result;
+        if(result === 'granted'){
+          toast('通知已开启，您将在设定时间收到提醒');
+          document.getElementById('notifyBanner').innerHTML = '';
+        } else {
+          toast('通知权限被拒绝，提醒功能将无法使用');
+        }
+        return result;
+      } catch(e){
+        this._permission = 'denied';
+        return 'denied';
+      }
+    } else {
+      toast('此设备不支持通知功能');
       return 'denied';
     }
   },
 
-  // 检查是否需要显示权限引导
   showBannerIfNeeded(){
     const banner = document.getElementById('notifyBanner');
     if(!banner) return;
@@ -557,35 +598,46 @@ const Notifier = {
     </div>`;
   },
 
-  // 发送即时通知
-  send(title, body){
+  async send(title, body){
     if(this._permission !== 'granted') return;
-    try {
-      new Notification(title, {
-        body: body,
-        icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="20" fill="%2307C160"/><text x="50" y="65" text-anchor="middle" fill="white" font-size="50">📝</text></svg>',
-        tag: 'flashcapsule',
-        requireInteraction: true
-      });
-    } catch(e){ console.warn('通知发送失败', e); }
+    if(this._isNative){
+      // 使用 Capacitor 原生本地通知
+      const id = this._notificationId++;
+      try {
+        await this._plugin.schedule({
+          notifications: [{
+            id: id,
+            title: title,
+            body: body,
+            schedule: { at: new Date(Date.now() + 1000) }
+          }]
+        });
+      } catch(e){ console.warn('原生通知发送失败', e); }
+    } else {
+      try {
+        new Notification(title, {
+          body: body,
+          icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="20" fill="%2307C160"/><text x="50" y="65" text-anchor="middle" fill="white" font-size="50">📝</text></svg>',
+          tag: 'flashcapsule',
+          requireInteraction: true
+        });
+      } catch(e){ console.warn('浏览器通知发送失败', e); }
+    }
   },
 
-  // 检查所有待提醒的记录
   checkReminders(){
     if(this._permission !== 'granted') return;
     const now = new Date();
     records.forEach(r => {
       if(!r.reminderAt) return;
-      if(this._notifiedIds.has(r.id)) return; // 已通知过
+      if(this._notifiedIds.has(r.id)) return;
       const remindTime = new Date(r.reminderAt);
-      // 提醒时间在 now 前后1分钟内就触发
       const diff = now.getTime() - remindTime.getTime();
       if(diff >= 0 && diff < 60000){
         this._notifiedIds.add(r.id);
         this._persistNotified();
         const label = {0:'紧急',1:'重要',2:'普通'}[r.priority]||'';
         this.send(`⏰ ${label}提醒`, r.text);
-        // 通知后清除 reminderAt，防止旧数据反复匹配
         r.reminderAt = null;
         Storage.save();
       }

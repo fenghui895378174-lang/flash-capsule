@@ -37,6 +37,8 @@ jobs:
           cp index.html www/
           cp manifest.json www/
           cp sw.js www/
+          cp node_modules/@capacitor/core/dist/capacitor.js www/
+          cp node_modules/@capacitor/local-notifications/dist/plugin.js www/local-notifications.js
 
       - name: Build web assets
         run: npx cap sync android
