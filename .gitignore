@@ -1,0 +1,10 @@
+node_modules/
+android/app/build/
+android/build/
+android/.gradle/
+android/captures/
+android/local.properties
+dist/
+.capacitor/
+*.apk
+*.aab

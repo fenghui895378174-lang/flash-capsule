@@ -1,0 +1,25 @@
+{
+  "name": "flashcapsule",
+  "version": "1.0.0",
+  "description": "闪记胶囊 - 记录灵感、管理收支、倒计时提醒的全能App",
+  "private": true,
+  "scripts": {
+    "dev": "npx serve .",
+    "build": "echo 'Static web app, no build step needed'",
+    "cap:init": "npx cap init 闪记胶囊 com.flashcapsule.app --web-dir=.",
+    "cap:add:android": "npx cap add android",
+    "cap:sync": "npx cap sync",
+    "cap:open:android": "npx cap open android",
+    "cap:build:android": "npx cap sync && cd android && ./gradlew assembleDebug",
+    "cap:apk": "npx cap sync android && cd android && ./gradlew assembleDebug"
+  },
+  "dependencies": {
+    "@capacitor/android": "^6.2.1",
+    "@capacitor/core": "^6.2.1",
+    "@capacitor/local-notifications": "^6.1.3"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.2.1",
+    "serve": "^14.2.0"
+  }
+}

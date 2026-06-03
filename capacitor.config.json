@@ -1,0 +1,14 @@
+{
+  "appId": "com.flashcapsule.app",
+  "appName": "闪记胶囊",
+  "webDir": ".",
+  "plugins": {
+    "LocalNotifications": {
+      "smallIcon": "ic_stat_notification",
+      "iconColor": "#07C160"
+    }
+  },
+  "android": {
+    "allowMixedContent": true
+  }
+}

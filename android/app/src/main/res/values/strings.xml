@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">闪记胶囊</string>
+    <string name="title_activity_main">闪记胶囊</string>
+    <string name="package_name">com.flashcapsule.app</string>
+    <string name="custom_url_scheme">com.flashcapsule.app</string>
+</resources>
